@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-import os
 import threading
 import time
+
+from backend.sdl_env import configure_sdl_env
+
+configure_sdl_env()
 
 import pygame
 
@@ -12,9 +15,6 @@ from backend.protocol import PadState
 from core.logger import EventLogger
 from core.sample import DeviceInfo, GamepadSample, RawInputEvent
 from pad_common import XINPUT_PROFILE, detect_axis_profile_from_name, input_step_detected, normalize_trigger
-
-os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
-os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 
 class WindowsGamepadBackend:
@@ -29,8 +29,10 @@ class WindowsGamepadBackend:
         self._event_timestamps: list[int] = []
 
     def start(self) -> None:
-        pygame.init()
-        pygame.joystick.init()
+        if not pygame.get_init():
+            pygame.init()
+        if not pygame.joystick.get_init():
+            pygame.joystick.init()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
 
