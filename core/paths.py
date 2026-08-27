@@ -12,5 +12,9 @@ def project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def locale_dir() -> Path:
+    return project_root() / "locale"
+
+
 def asset_path(*parts: str) -> Path:
     return project_root().joinpath("assets", *parts)

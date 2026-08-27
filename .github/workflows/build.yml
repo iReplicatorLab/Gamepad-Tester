@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  VERSION: "0.2.0"
+  VERSION: "0.2.1"
 
 jobs:
   linux-deb:
@@ -110,4 +110,5 @@ jobs:
             dist/**/*.deb
             dist/**/*.zip
           generate_release_notes: true
-          draft: false
+          draft: true
+          prerelease: true

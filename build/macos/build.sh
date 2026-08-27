@@ -4,14 +4,14 @@ set -euo pipefail
 
 ARCH="${1:-arm64}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VERSION="0.2.0"
+VERSION="0.2.1"
 APP_NAME="iReplicator Gamepad Tester"
 OUT_DIR="$ROOT/build/dist/macos-$ARCH"
 
 cd "$ROOT"
 
 python3 -m pip install --upgrade pip
-python3 -m pip install pyinstaller pygame
+python3 -m pip install pyinstaller pygame pillow
 
 PY_ARGS=(
   --noconfirm
@@ -23,6 +23,8 @@ PY_ARGS=(
   --specpath "$ROOT/build/pyinstaller"
   --hidden-import pygame
   --hidden-import pygame.joystick
+  --hidden-import PIL._tkinter_finder
+  --collect-submodules PIL
   --collect-submodules core
   --collect-submodules backend
   --collect-submodules ui

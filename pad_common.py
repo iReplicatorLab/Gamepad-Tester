@@ -30,7 +30,7 @@ ALL_BUTTON_INDICES = [idx for idx, _ in BUTTONS + DPAD_BUTTONS]
 
 APP_NAME = "iReplicator Gamepad Tester"
 APP_ID = "com.ireplicator.gamepad-tester"
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 REPORT_SCHEMA = "diagnostic_report_v1"
 
 

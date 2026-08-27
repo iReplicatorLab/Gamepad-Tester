@@ -7,6 +7,7 @@ from tkinter import ttk
 
 from pad_common import BUTTONS, DPAD_BUTTONS, diagram_kind, normalize_trigger
 from core.paths import asset_path
+from ui.windows.images import load_png_photo
 
 
 class MonitoringPanel(ttk.Frame):
@@ -104,10 +105,7 @@ class MonitoringPanel(ttk.Frame):
         path = asset_path(f"xbox-{kind}.png")
         if not path.is_file():
             return
-        photo = tk.PhotoImage(file=str(path))
-        factor = max(1, photo.width() // 520)
-        if factor > 1:
-            photo = photo.subsample(factor, factor)
+        photo = load_png_photo(path)
         self._pad_photo = photo
         self._pad_label.configure(image=photo)
         self._pad_kind = kind

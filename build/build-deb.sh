@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="0.2.0"
+VERSION="0.2.1"
 ARCH="${1:-amd64}"
 PKG_NAME="ireplicator-gamepad-tester"
 STAGING="$ROOT/build/staging/${PKG_NAME}_${VERSION}_${ARCH}"

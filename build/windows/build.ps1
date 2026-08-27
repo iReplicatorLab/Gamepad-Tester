@@ -6,14 +6,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$Version = "0.2.0"
+$Version = "0.2.1"
 $AppName = "iReplicator Gamepad Tester"
 $OutDir = Join-Path $Root "build\dist\windows-$Arch"
 
 Set-Location $Root
 
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install pyinstaller
+python -m pip install pyinstaller pillow
 if ($Arch -eq "arm64") {
     # pygame has no official win-arm64 wheel on PyPI; pygame-ce provides one.
     python -m pip install pygame-ce
@@ -32,6 +32,8 @@ $PyArgs = @(
     "--specpath", (Join-Path $Root "build\pyinstaller"),
     "--hidden-import", "pygame",
     "--hidden-import", "pygame.joystick",
+    "--hidden-import", "PIL._tkinter_finder",
+    "--collect-submodules", "PIL",
     "--collect-submodules", "core",
     "--collect-submodules", "backend",
     "--collect-submodules", "ui",

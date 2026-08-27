@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-_LOCALE_DIR = Path(__file__).resolve().parent.parent / "locale"
+from core.paths import locale_dir
 _strings: dict[str, str] = {}
 _locale = "ru"
 
@@ -13,7 +12,7 @@ _locale = "ru"
 def set_locale(code: str) -> None:
     global _locale, _strings
     _locale = code if code in ("ru", "en") else "ru"
-    path = _LOCALE_DIR / f"{_locale}.json"
+    path = locale_dir() / f"{_locale}.json"
     if path.exists():
         _strings = json.loads(path.read_text(encoding="utf-8"))
     else:
