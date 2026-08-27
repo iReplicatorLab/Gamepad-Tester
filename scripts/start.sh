@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export SDL_GAMECONTROLLERCONFIG="${SDL_GAMECONTROLLERCONFIG:-0300a81c5e040000a102000000010000,X360 Wireless Controller,a:b0,b:b1,x:b2,y:b3,back:b6,guide:b8,start:b7,leftshoulder:b4,rightshoulder:b5,leftstick:b9,rightstick:b10,lefttrigger:a2,righttrigger:a5,leftx:a0,lefty:a1,rightx:a3,righty:a4,dpup:b11,dpdown:b12,dpleft:b13,dpright:b14,platform:Linux,}"
@@ -9,9 +9,9 @@ export SDL_GAMECONTROLLERCONFIG="${SDL_GAMECONTROLLERCONFIG:-0300a81c5e040000a10
 usage() {
   cat <<'EOF'
 Usage:
-  ./start.sh            Run desktop app from sources (Tauri dev)
-  ./start.sh --release  Run pre-built release binary
-  ./start.sh --help     Show this help
+  ./scripts/start.sh            Run desktop app from sources (Tauri dev)
+  ./scripts/start.sh --release  Run pre-built release binary
+  ./scripts/start.sh --help     Show this help
 
 Desktop app opens in a native window. Python sidecar starts automatically.
 EOF

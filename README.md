@@ -79,12 +79,14 @@ pip install -r requirements.txt
 ./run.sh
 ```
 
-**Windows (PowerShell):**
+**Windows:** double-click `run-dev.bat`, or in PowerShell:
 
 ```powershell
 pip install -r requirements-desktop.txt
 .\start.ps1
 ```
+
+Browser-only test (no Rust): double-click `dev.bat`.
 
 `run.sh` / `start.ps1` run `npm run tauri dev`, which starts the web UI, Rust shell, and Python sidecar together.
 
@@ -93,8 +95,8 @@ pip install -r requirements-desktop.txt
 | Step | Command | What it tests |
 |------|---------|---------------|
 | 1 | `pwsh .\scripts\test-sidecar.ps1` | Python + pygame + HTTP API |
-| 2 | `pwsh .\dev.ps1` | Sidecar + browser UI (no Rust) |
-| 3 | `.\start.ps1` | Full Tauri dev (Python sidecar) |
+| 2 | `dev.bat` | Sidecar + browser UI (no Rust) |
+| 3 | `run-dev.bat` | Full Tauri dev (Python sidecar) |
 | 4 | `pwsh .\build\build-sidecar.ps1` then `npm run tauri build` | Same path as CI / MSI |
 
 If step 3 works but the installed MSI does not, the bundled `gamepad-service` binary is the likely failure point (check `%TEMP%\gamepad-sidecar-err.log` when using `dev.ps1`).
@@ -136,7 +138,7 @@ git push origin v0.3.0
 | `core/` | Diagnostics logic, config, i18n |
 | `backend/` | Linux (evdev) / Windows & macOS (pygame) input |
 | `locale/` | English / Russian strings |
-| `build/` | Sidecar packaging scripts |
+| `scripts/` | Launch scripts (`run-dev.bat`, `start.sh`, `dev.ps1`, …) |
 
 ## License
 

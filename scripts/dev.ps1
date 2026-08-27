@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Root = $PSScriptRoot
+$Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 $Venv = Join-Path $Root ".venv"

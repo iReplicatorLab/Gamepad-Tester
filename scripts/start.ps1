@@ -5,15 +5,15 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Root = $PSScriptRoot
+$Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 function Show-Usage {
   @"
 Usage:
-  .\start.ps1            Run desktop app from sources (Tauri dev)
-  .\start.ps1 -Release   Run pre-built release binary
-  .\start.ps1 -Help      Show this help
+  .\scripts\start.ps1            Run desktop app from sources (Tauri dev)
+  .\scripts\start.ps1 -Release   Run pre-built release binary
+  .\scripts\start.ps1 -Help      Show this help
 
 Dev mode starts the Python sidecar automatically (no PyInstaller build needed).
 If dev works but the MSI installer does not, the problem is likely in the bundled sidecar.
@@ -57,7 +57,7 @@ function Start-Dev {
   Ensure-Node
   Ensure-PythonSidecarDeps
   Write-Host "Starting desktop app (Tauri dev)..."
-  Write-Host "Tip: to test only the Python sidecar, run: .\dev.ps1"
+  Write-Host "Tip: browser-only test: .\scripts\dev.ps1"
   npm run tauri dev
 }
 
