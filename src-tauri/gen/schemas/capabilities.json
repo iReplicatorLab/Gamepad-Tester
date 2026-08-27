@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Main window capability","local":true,"windows":["main"],"permissions":["core:default","dialog:default",{"identifier":"shell:allow-execute","allow":[{"args":true,"name":"gamepad-service","sidecar":true}]}]}}
+{"default":{"identifier":"default","description":"Main window capability","local":true,"windows":["main"],"permissions":["core:default","dialog:default"]}}

@@ -1,6 +1,6 @@
 import "./style.css";
-import { invoke, isTauri } from "@tauri-apps/api/core";
-import { api, setServiceUrl, serviceUrl, type DiagnosticsStatus, type PadState } from "./api";
+import { invoke } from "@tauri-apps/api/core";
+import { api, type DiagnosticsStatus, type PadState } from "./api";
 import { getLocale, loadLocale, t } from "./i18n";
 import { LivePad } from "./live-pad";
 
@@ -34,24 +34,6 @@ function showMessage(text: string): void {
   msg.textContent = text;
   app.appendChild(msg);
   shellBuilt = false;
-}
-
-async function initServiceUrl(): Promise<void> {
-  if (isTauri()) {
-    for (let i = 0; i < 60; i += 1) {
-      try {
-        const url = await invoke<string>("get_service_url");
-        setServiceUrl(url);
-        return;
-      } catch {
-        await new Promise((r) => setTimeout(r, 250));
-      }
-    }
-    throw new Error("Sidecar not ready. Restart the app.");
-  }
-  const envUrl = import.meta.env.VITE_SERVICE_URL as string | undefined;
-  if (envUrl) setServiceUrl(envUrl);
-  else setServiceUrl("http://127.0.0.1:8765");
 }
 
 function diagnosticsFinished(): boolean {
@@ -278,19 +260,7 @@ function renderReportView(root: HTMLElement): void {
 }
 
 async function exportReport(format: "json" | "csv"): Promise<void> {
-  if (isTauri()) {
-    await invoke("export_report", { format });
-    return;
-  }
-  const payload = await api.export(format);
-  const ext = format === "json" ? "json" : "csv";
-  const blob = new Blob([payload.content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `gamepad-report.${ext}`;
-  a.click();
-  URL.revokeObjectURL(url);
+  await invoke("export_report", { format });
 }
 
 function renderSettingsModal(): void {
@@ -462,23 +432,14 @@ async function refreshAll(): Promise<void> {
       if (box) box.textContent = reportLines.length ? reportLines.join("\n") : t("report.empty");
     }
   } catch {
-    // sidecar not ready yet
+    // backend not ready yet
   }
 }
 
 async function boot(): Promise<void> {
-  showMessage("Connecting to sidecar...");
+  showMessage("Starting…");
   try {
-    await initServiceUrl();
-    for (let i = 0; i < 40; i += 1) {
-      try {
-        await api.health();
-        break;
-      } catch {
-        if (i === 39) throw new Error(`Sidecar unavailable at ${serviceUrl()}`);
-        await new Promise((r) => setTimeout(r, 250));
-      }
-    }
+    await api.health();
     configCache = await api.config.get();
     await loadLocale(String(configCache.locale ?? getLocale()));
     buildSettingsModal();

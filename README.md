@@ -17,15 +17,15 @@ Connect a gamepad over USB or Bluetooth, run guided diagnostics, and get a repor
 - **Stick analysis** — drift at rest, dead zone, gate shape
 - **Report** — score, issues list, export to JSON / CSV
 - **Profiles** — auto-detect Xbox 360 vs Xbox One / Series axis layout
-- **Cross-platform** — Tauri 2 shell with a unified web UI and Python sidecar for gamepad I/O
+- **Cross-platform** — Tauri 2 shell with a unified web UI and native Rust gamepad I/O
 
 ## Architecture
 
 ```
-Web UI (frontend/) → Tauri (src-tauri/) → Python sidecar (service/) → core/ + backend/
+Web UI (frontend/) → Tauri commands (src-tauri/) → Rust diagnostics + input backend
 ```
 
-The Rust shell spawns a local Python service that exposes a REST API. All diagnostic logic stays in Python (`core/`, `backend/`).
+Linux uses `evdev` (plus `/dev/input/js*` for Xbox 360 D-pad workarounds). Windows and macOS use `gilrs`. There is no Python sidecar.
 
 ## Download
 
@@ -63,40 +63,25 @@ On first launch, macOS may block the unsigned app: **System Settings → Privacy
 
 ## Run from source
 
-**Requirements:** Node.js 24+, Rust (stable), Python 3.10+, `pygame` / `pygame-ce`, `evdev` (Linux only).
+**Requirements:** Node.js 24+, Rust (stable).
 
 **Linux dev dependencies:**
 
 ```bash
-sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
-  python3-evdev python3-pygame
+sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 ```
 
 **Start the app (dev):**
 
 ```bash
-pip install -r requirements.txt
 ./run.sh
 ```
 
-`run.sh` runs `npm run tauri dev`, which starts the web UI, Rust shell, and Python sidecar together.
-
-**Sidecar only** (for frontend hacking):
-
-```bash
-python3 service/gamepad_service.py --host 127.0.0.1 --port 8765
-VITE_SERVICE_URL=http://127.0.0.1:8765 npm run dev
-```
+`run.sh` runs `npm run tauri dev`, which starts the web UI and the native Rust backend together.
 
 ## Build locally
 
 ```bash
-# Python sidecar binary (platform-specific)
-./build/build-sidecar.sh          # Linux
-./build/build-sidecar-macos.sh    # macOS
-pwsh ./build/build-sidecar.ps1    # Windows
-
-# Tauri app bundle
 npm ci
 npm run tauri build
 ```
@@ -104,8 +89,8 @@ npm run tauri build
 Push a version tag to build everything in GitHub Actions:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 ## Project layout
@@ -113,12 +98,9 @@ git push origin v0.3.0
 | Path | Description |
 |------|-------------|
 | `frontend/` | Web UI (HTML, CSS, TypeScript) |
-| `src-tauri/` | Tauri shell, sidecar lifecycle |
-| `service/` | Python HTTP sidecar API |
-| `core/` | Diagnostics logic, config, i18n |
-| `backend/` | Linux (evdev) / Windows & macOS (pygame) input |
+| `src-tauri/` | Tauri shell, diagnostics, Linux evdev / gilrs input |
 | `locale/` | English / Russian strings |
-| `build/` | Sidecar packaging scripts |
+| `assets/` | Controller diagrams and screenshot |
 
 ## License
 
@@ -144,7 +126,7 @@ AGPL-3.0 — see [LICENSE](LICENSE).
 - **Анализ стиков** — дрифт в покое, мёртвая зона, форма зоны
 - **Отчёт** — оценка, список проблем, экспорт JSON / CSV
 - **Профили** — автоматическое определение раскладки Xbox 360 и Xbox One / Series
-- **Кроссплатформенность** — единый интерфейс Tauri + Web, Python sidecar для ввода
+- **Кроссплатформенность** — единый интерфейс Tauri + Web, ввод геймпада на Rust
 
 ## Скачать
 
@@ -179,19 +161,16 @@ sudo ./setup-input-access.sh
 
 ## Запуск из исходников
 
-**Зависимости:** Node.js 24+, Rust (stable), Python 3.10+, `pygame` / `pygame-ce`, `evdev` (только Linux).
+**Зависимости:** Node.js 24+, Rust (stable).
 
 ```bash
-sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
-  python3-evdev python3-pygame
-pip install -r requirements.txt
+sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 ./run.sh
 ```
 
 ## Локальная сборка
 
 ```bash
-./build/build-sidecar.sh
 npm ci
 npm run tauri build
 ```
@@ -199,8 +178,8 @@ npm run tauri build
 Сборка в GitHub Actions по тегу:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 ## Лицензия

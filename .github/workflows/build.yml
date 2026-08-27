@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  VERSION: "0.3.0"
+  VERSION: "0.1.0"
 
 jobs:
   build-linux:
@@ -22,16 +22,11 @@ jobs:
           - arch: amd64
             runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            sidecar_arch: x86_64
           - arch: arm64
             runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            sidecar_arch: aarch64
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -40,10 +35,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - name: Build sidecar
-        run: |
-          chmod +x build/build-sidecar.sh
-          ./build/build-sidecar.sh "${{ matrix.sidecar_arch }}"
       - name: Build Tauri bundle
         run: |
           npm ci
@@ -71,16 +62,10 @@ jobs:
             target: aarch64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build sidecar
-        shell: pwsh
-        run: ./build/build-sidecar.ps1 -Arch ${{ matrix.arch }}
       - name: Build Tauri bundle
         run: |
           npm ci
@@ -100,23 +85,14 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
-            sidecar_arch: arm64
           - arch: x64
             runner: macos-15-intel
-            sidecar_arch: x86_64
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build sidecar
-        run: |
-          chmod +x build/build-sidecar-macos.sh
-          ./build/build-sidecar-macos.sh "${{ matrix.sidecar_arch }}"
       - name: Build Tauri bundle
         run: |
           npm ci

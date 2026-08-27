@@ -1,20 +1,7 @@
-let baseUrl = import.meta.env.VITE_SERVICE_URL ?? "";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 
-export function setServiceUrl(url: string): void {
-  baseUrl = url.replace(/\/$/, "");
-}
-
-export function serviceUrl(): string {
-  return baseUrl;
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${baseUrl}${path}`, {
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
-  });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
-  return (await res.json()) as T;
+async function request<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  return invoke<T>(cmd, args);
 }
 
 export type PadState = {
@@ -51,31 +38,25 @@ export type DiagnosticsStatus = {
 };
 
 export const api = {
-  health: () => request<{ ok: boolean }>("/api/health"),
-  state: () => request<PadState>("/api/state"),
+  health: () => request<{ ok: boolean }>("health"),
+  state: () => request<PadState>("get_pad_state"),
   config: {
-    get: () => request<Record<string, unknown>>("/api/config"),
-    put: (body: Record<string, unknown>) =>
-      request<Record<string, unknown>>("/api/config", { method: "PUT", body: JSON.stringify(body) }),
+    get: () => request<Record<string, unknown>>("get_config"),
+    put: (body: Record<string, unknown>) => request<Record<string, unknown>>("put_config", { config: body }),
   },
-  locale: (code: string) => request<Record<string, string>>(`/api/locale/${code}`),
-  assetUrl: (name: string) => `${baseUrl}/api/assets/${name}`,
+  locale: (code: string) => request<Record<string, string>>("get_locale_strings", { code }),
+  assetUrl: (name: string) => `./assets/${name}`,
   diagnostics: {
-    status: () => request<DiagnosticsStatus>("/api/diagnostics/status"),
-    start: (tests?: string[]) =>
-      request<{ ok: boolean }>("/api/diagnostics/start", {
-        method: "POST",
-        body: JSON.stringify({ tests }),
-      }),
-    stop: () => request<{ ok: boolean }>("/api/diagnostics/stop", { method: "POST", body: "{}" }),
-    skip: () => request<{ ok: boolean }>("/api/diagnostics/skip", { method: "POST", body: "{}" }),
+    status: () => request<DiagnosticsStatus>("get_diagnostics_status"),
+    start: (tests?: string[]) => request<{ ok: boolean }>("start_diagnostics", { tests }),
+    stop: () => request<{ ok: boolean }>("stop_diagnostics"),
+    skip: () => request<{ ok: boolean }>("skip_step"),
   },
-  report: () => request<{ report: Record<string, unknown>; lines: string[] }>("/api/report"),
-  log: (since = 0) => request<{ lines: string[]; next: number }>(`/api/log?since=${since}`),
+  report: () => request<{ report: Record<string, unknown>; lines: string[] }>("get_report"),
+  log: (since = 0) => request<{ lines: string[]; next: number }>("get_log", { since }),
   rumble: (left: number, right: number, duration_ms = 800) =>
-    request<{ ok: boolean }>("/api/rumble", {
-      method: "POST",
-      body: JSON.stringify({ left, right, duration_ms }),
-    }),
-  export: (format: "json" | "csv") => request<{ content: string }>(`/api/export/${format}`),
+    request<{ ok: boolean }>("rumble", { left, right, durationMs: duration_ms }),
+  export: (format: "json" | "csv") => invoke<void>("export_report", { format }),
 };
+
+export { isTauri };

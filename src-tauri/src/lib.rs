@@ -1,189 +1,115 @@
-use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
-use std::sync::Mutex;
-use std::time::Duration;
+mod backend;
+mod button;
+mod config;
+mod export;
+mod i18n;
+mod logger;
+mod pad;
+mod report;
+mod sample;
+mod service;
+mod session;
+mod stats;
+mod status;
+mod stick;
+mod trigger;
 
-use reqwest::blocking::Client;
+use std::process::Command;
+use std::sync::Mutex;
+
 use tauri::{Manager, State};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
 
-enum RunningSidecar {
-    Python(Child),
-    Bundled(CommandChild),
-}
+use crate::config::DiagnosticConfig;
+use crate::i18n::locale_map;
+use crate::pad::PadStatePayload;
+use crate::service::{GamepadService, LogPayload, ReportPayload};
+use crate::session::DiagnosticsStatus;
 
-impl RunningSidecar {
-    fn kill(self) {
-        match self {
-            RunningSidecar::Python(mut child) => {
-                let _ = child.kill();
-                let _ = child.wait();
-            }
-            RunningSidecar::Bundled(child) => {
-                let _ = child.kill();
-            }
-        }
-    }
-}
-
-struct SidecarState {
-    process: Mutex<Option<RunningSidecar>>,
-    url: Mutex<Option<String>>,
-}
-
-impl SidecarState {
-    fn new() -> Self {
-        Self {
-            process: Mutex::new(None),
-            url: Mutex::new(None),
-        }
-    }
-}
-
-fn project_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("project root")
-        .to_path_buf()
-}
-
-fn parse_service_url(line: &str) -> Option<String> {
-    line.strip_prefix("SERVICE_URL=")
-        .map(str::trim)
-        .map(ToString::to_string)
-}
-
-fn read_service_url_from_reader(mut reader: impl BufRead) -> Option<String> {
-    let mut buf = String::new();
-    loop {
-        buf.clear();
-        match reader.read_line(&mut buf) {
-            Ok(0) => return None,
-            Ok(_) => {
-                if let Some(url) = parse_service_url(buf.trim()) {
-                    return Some(url);
-                }
-            }
-            Err(_) => return None,
-        }
-    }
-}
-
-fn spawn_python_sidecar() -> Result<(RunningSidecar, String), String> {
-    let root = project_root();
-    let script = root.join("service").join("gamepad_service.py");
-    let python = if cfg!(windows) { "python" } else { "python3" };
-    let mut child = Command::new(python)
-        .arg(script)
-        .args(["--host", "127.0.0.1", "--port", "0"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("failed to spawn python sidecar: {e}"))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "sidecar stdout unavailable".to_string())?;
-    let mut reader = BufReader::new(stdout);
-    let url = read_service_url_from_reader(&mut reader)
-        .ok_or_else(|| "sidecar did not report SERVICE_URL".to_string())?;
-    std::thread::spawn(move || {
-        let mut line = String::new();
-        loop {
-            line.clear();
-            if reader.read_line(&mut line).ok().unwrap_or(0) == 0 {
-                break;
-            }
-        }
-    });
-    Ok((RunningSidecar::Python(child), url))
-}
-
-fn spawn_bundled_sidecar(app: &tauri::App) -> Result<(RunningSidecar, String), String> {
-    let (mut rx, child) = app
-        .shell()
-        .sidecar("gamepad-service")
-        .map_err(|e| e.to_string())?
-        .args(["--host", "127.0.0.1", "--port", "0"])
-        .spawn()
-        .map_err(|e| e.to_string())?;
-
-    let mut url = None;
-    let deadline = std::time::Instant::now() + Duration::from_secs(15);
-    while url.is_none() && std::time::Instant::now() < deadline {
-        if let Some(event) = rx.blocking_recv() {
-            if let CommandEvent::Stdout(line_bytes) = event {
-                let line = String::from_utf8_lossy(&line_bytes);
-                if let Some(found) = parse_service_url(line.trim()) {
-                    url = Some(found);
-                }
-            }
-        } else {
-            break;
-        }
-    }
-    let url = url.ok_or_else(|| "sidecar did not report SERVICE_URL".to_string())?;
-    Ok((RunningSidecar::Bundled(child), url))
-}
-
-fn start_sidecar(app: &tauri::App, state: &SidecarState) -> Result<String, String> {
-    let (process, url) = if cfg!(debug_assertions) {
-        spawn_python_sidecar().or_else(|_| spawn_bundled_sidecar(app))?
-    } else {
-        spawn_bundled_sidecar(app)?
-    };
-    *state.process.lock().unwrap() = Some(process);
-    *state.url.lock().unwrap() = Some(url.clone());
-    Ok(url)
-}
-
-fn stop_sidecar(state: &SidecarState) {
-    if let Some(process) = state.process.lock().unwrap().take() {
-        process.kill();
-    }
-    *state.url.lock().unwrap() = None;
+struct AppState {
+    service: Mutex<GamepadService>,
 }
 
 #[tauri::command]
-fn get_service_url(state: State<'_, SidecarState>) -> Result<String, String> {
-    state
-        .url
+fn health() -> serde_json::Value {
+    serde_json::json!({ "ok": true })
+}
+
+#[tauri::command]
+fn get_pad_state(state: State<'_, AppState>) -> PadStatePayload {
+    state.service.lock().unwrap().get_state_payload()
+}
+
+#[tauri::command]
+fn get_config(state: State<'_, AppState>) -> DiagnosticConfig {
+    state.service.lock().unwrap().config_json()
+}
+
+#[tauri::command]
+fn put_config(state: State<'_, AppState>, config: serde_json::Value) -> DiagnosticConfig {
+    state.service.lock().unwrap().update_config(config)
+}
+
+#[tauri::command]
+fn get_locale_strings(code: String) -> std::collections::HashMap<String, String> {
+    locale_map(&code)
+}
+
+#[tauri::command]
+fn get_diagnostics_status(state: State<'_, AppState>) -> DiagnosticsStatus {
+    state.service.lock().unwrap().get_diagnostics_payload()
+}
+
+#[tauri::command]
+fn start_diagnostics(state: State<'_, AppState>, tests: Option<Vec<String>>) -> serde_json::Value {
+    state.service.lock().unwrap().start_diagnostics(tests);
+    serde_json::json!({ "ok": true })
+}
+
+#[tauri::command]
+fn stop_diagnostics(state: State<'_, AppState>) -> serde_json::Value {
+    state.service.lock().unwrap().stop_diagnostics();
+    serde_json::json!({ "ok": true })
+}
+
+#[tauri::command]
+fn skip_step(state: State<'_, AppState>) -> serde_json::Value {
+    state.service.lock().unwrap().skip_step();
+    serde_json::json!({ "ok": true })
+}
+
+#[tauri::command]
+fn get_report(state: State<'_, AppState>) -> ReportPayload {
+    state.service.lock().unwrap().get_report_payload()
+}
+
+#[tauri::command]
+fn get_log(state: State<'_, AppState>, since: Option<u64>) -> LogPayload {
+    state.service.lock().unwrap().get_log(since.unwrap_or(0) as usize)
+}
+
+#[tauri::command]
+fn rumble(
+    state: State<'_, AppState>,
+    left: f64,
+    right: f64,
+    duration_ms: Option<u32>,
+) -> serde_json::Value {
+    let ok = state
+        .service
         .lock()
         .unwrap()
-        .clone()
-        .ok_or_else(|| "sidecar not ready".to_string())
+        .rumble(left, right, duration_ms.unwrap_or(500));
+    serde_json::json!({ "ok": ok })
 }
 
 #[tauri::command]
-fn export_report(
-    app: tauri::AppHandle,
-    state: State<'_, SidecarState>,
-    format: String,
-) -> Result<(), String> {
-    let url = get_service_url(state)?;
-    let endpoint = if format == "csv" {
-        "/api/export/csv"
+fn export_report(app: tauri::AppHandle, state: State<'_, AppState>, format: String) -> Result<(), String> {
+    let content = if format == "csv" {
+        state.service.lock().unwrap().export_csv()
     } else {
-        "/api/export/json"
+        state.service.lock().unwrap().export_json()?
     };
-    let client = Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|e| e.to_string())?;
-    let response = client
-        .get(format!("{url}{endpoint}"))
-        .send()
-        .map_err(|e| e.to_string())?;
-    let body = response.text().map_err(|e| e.to_string())?;
-    let payload: serde_json::Value =
-        serde_json::from_str(&body).map_err(|e| e.to_string())?;
-    let content = payload
-        .get("content")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "export response missing content".to_string())?;
     let ext = if format == "csv" { "csv" } else { "json" };
     let path = app
         .dialog()
@@ -201,12 +127,7 @@ fn export_report(
 
 #[tauri::command]
 fn open_config_folder() -> Result<(), String> {
-    let dir = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map(PathBuf::from)
-        .map_err(|_| "home dir unavailable".to_string())?
-        .join(".config")
-        .join("ireplicator-gamepad-tester");
+    let dir = DiagnosticConfig::config_dir();
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     if cfg!(target_os = "linux") {
         Command::new("xdg-open").arg(&dir).spawn().map_err(|e| e.to_string())?;
@@ -218,8 +139,6 @@ fn open_config_folder() -> Result<(), String> {
     Ok(())
 }
 
-/// Flatpak exports an empty `icons/hicolor/index.theme`. GTK loads it before
-/// `/usr/share/icons/hicolor` and prints "Theme file for hicolor has no name".
 fn skip_broken_gtk_hicolor_themes() {
     #[cfg(target_os = "linux")]
     {
@@ -255,26 +174,29 @@ fn hicolor_theme_usable(data_dir: &str) -> bool {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     skip_broken_gtk_hicolor_themes();
-    let sidecar_state = SidecarState::new();
-
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(sidecar_state)
-        .setup(|app| {
-            let state = app.state::<SidecarState>();
-            let service_url = start_sidecar(app, &state)?;
-            eprintln!("sidecar ready at {service_url}");
-            Ok(())
+        .manage(AppState {
+            service: Mutex::new(GamepadService::new()),
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
-                let state = window.state::<SidecarState>();
-                stop_sidecar(&state);
+                window.state::<AppState>().service.lock().unwrap().shutdown();
             }
         })
         .invoke_handler(tauri::generate_handler![
-            get_service_url,
+            health,
+            get_pad_state,
+            get_config,
+            put_config,
+            get_locale_strings,
+            get_diagnostics_status,
+            start_diagnostics,
+            stop_diagnostics,
+            skip_step,
+            get_report,
+            get_log,
+            rumble,
             export_report,
             open_config_folder
         ])

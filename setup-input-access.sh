@@ -10,4 +10,4 @@ fi
 TARGET_USER="${SUDO_USER:-$USER}"
 usermod -aG input "$TARGET_USER"
 echo "Пользователь $TARGET_USER добавлен в группу input."
-echo "Перезайдите в систему (или перезагрузите ПК), затем запустите run.sh"
+echo "Перезайдите в систему (или перезагрузите ПК), затем запустите ./run.sh"
