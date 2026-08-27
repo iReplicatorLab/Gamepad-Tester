@@ -206,14 +206,9 @@ pip install -r requirements.txt
 ./run.sh
 ```
 
-**Windows (PowerShell):**
+**Windows:** запустите `run-dev.bat` (или `dev.bat` для теста в браузере).
 
-```powershell
-pip install -r requirements-desktop.txt
-.\start.ps1
-```
-
-Диагностика: `pwsh .\scripts\test-sidecar.ps1` → `pwsh .\dev.ps1` → `.\start.ps1`. Если dev работает, а MSI — нет, пересоберите sidecar: `pwsh .\build\build-sidecar.ps1`.
+Диагностика: `pwsh .\scripts\test-sidecar.ps1` → `dev.bat` → `run-dev.bat`. Если dev работает, а MSI — нет, пересоберите sidecar: `pwsh .\build\build-sidecar.ps1`.
 
 ## Локальная сборка
 
