@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=iReplicator Gamepad Tester
+Comment=Test Xbox gamepad buttons, sticks, triggers and rumble
+Exec=ireplicator-gamepad-tester
+Icon=com.ireplicator.gamepad-tester
+Terminal=false
+Categories=Utility;Game;
+StartupNotify=true

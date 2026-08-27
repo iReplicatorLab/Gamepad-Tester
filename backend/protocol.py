@@ -1,0 +1,39 @@
+"""Backend протокол и общие типы."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Protocol
+
+from core.logger import EventLogger
+from core.sample import DeviceInfo
+from pad_common import AxisProfile
+
+
+@dataclass
+class PadState:
+    connected: bool = False
+    name: str = ""
+    axis_profile: str = ""
+    hint: str = ""
+    buttons: dict[int, bool] = field(default_factory=dict)
+    axes: dict[int, float] = field(default_factory=dict)
+    hat: tuple[int, int] = (0, 0)
+    transport: str = ""
+
+
+class GamepadBackendProtocol(Protocol):
+    logger: EventLogger
+
+    def start(self) -> None: ...
+    def stop(self) -> None: ...
+    def get_state(self) -> PadState: ...
+    def get_axis_profile(self) -> AxisProfile: ...
+    def get_device_info(self) -> DeviceInfo: ...
+    def rumble(self, left: float, right: float, duration_ms: int) -> bool: ...
+    def stop_rumble(self) -> None: ...
+    def start_logging(self, test_id: str) -> None: ...
+    def stop_logging(self) -> None: ...
+    def get_logged_samples(self) -> list: ...
+    def get_event_timestamps(self) -> list[int]: ...
+    def wait_for_user_step(self, message: str, timeout: float, stop_check, expect: str = "any") -> bool: ...
