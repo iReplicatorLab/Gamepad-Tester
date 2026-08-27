@@ -60,9 +60,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
-          path: |
-            build/dist/windows-${{ matrix.arch }}/*.exe
-            build/dist/ireplicator-gamepad-tester_${{ env.VERSION }}_win-${{ matrix.arch }}.zip
+          path: build/dist/ireplicator-gamepad-tester_${{ env.VERSION }}_win-${{ matrix.arch }}.zip
           if-no-files-found: error
 
   macos:
@@ -91,9 +89,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
-          path: |
-            build/dist/macos-${{ matrix.arch }}/*.app/**
-            build/dist/ireplicator-gamepad-tester_${{ env.VERSION }}_mac-${{ matrix.arch }}.zip
+          path: build/dist/ireplicator-gamepad-tester_${{ env.VERSION }}_mac-${{ matrix.arch }}.zip
           if-no-files-found: error
 
   release:
@@ -110,6 +106,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/**/*
+          files: |
+            dist/**/*.deb
+            dist/**/*.zip
           generate_release_notes: true
           draft: false
