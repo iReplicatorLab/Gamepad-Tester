@@ -16,10 +16,10 @@ if [[ ! -d "$VENV" ]]; then
   python3 -m venv "$VENV"
 fi
 
-"$VENV/bin/pip" install --upgrade pip pyinstaller >/dev/null
-"$VENV/bin/pip" install -r "$ROOT/requirements.txt" >/dev/null
+"$VENV/bin/python" -m pip install --upgrade pip >/dev/null
+"$VENV/bin/python" -m pip install pyinstaller -r "$ROOT/requirements.txt" >/dev/null
 
-"$VENV/bin/pyinstaller" --noconfirm --clean --onefile \
+"$VENV/bin/python" -m PyInstaller --noconfirm --clean --onefile \
   --name gamepad-service \
   --paths "$ROOT" \
   --hidden-import pygame \

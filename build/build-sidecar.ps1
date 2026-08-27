@@ -14,12 +14,12 @@ if (-not (Test-Path $Venv)) {
   python -m venv $Venv
 }
 
-$Pip = Join-Path $Venv "Scripts\pip.exe"
-$PyInstaller = Join-Path $Venv "Scripts\pyinstaller.exe"
+$Python = Join-Path $Venv "Scripts\python.exe"
 
-& $Pip install --upgrade pip pyinstaller pygame-ce | Out-Null
+& $Python -m pip install --upgrade pip | Out-Null
+& $Python -m pip install pyinstaller pygame-ce | Out-Null
 
-& $PyInstaller --noconfirm --clean --onefile `
+& $Python -m PyInstaller --noconfirm --clean --onefile `
   --name gamepad-service `
   --paths $Root `
   --hidden-import pygame `
