@@ -1,6 +1,0 @@
-#!/bin/bash
-set -euo pipefail
-APP_DIR="/usr/share/ireplicator-gamepad-tester"
-cd "$APP_DIR"
-export PYTHONPATH="$APP_DIR${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 "$APP_DIR/gamepad_tester.py" "$@"

@@ -9,31 +9,54 @@ permissions:
   contents: write
 
 env:
-  VERSION: "0.2.1"
+  VERSION: "0.3.0"
 
 jobs:
-  linux-deb:
+  build-linux:
     name: Linux ${{ matrix.arch }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-gnu
+            sidecar_arch: x86_64
+          - arch: arm64
+            target: aarch64-unknown-linux-gnu
+            sidecar_arch: aarch64
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build .deb (${{ matrix.arch }})
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install Linux deps
         run: |
-          chmod +x build/build-deb.sh build/linux/ireplicator-gamepad-tester.wrapper
-          ./build/build-deb.sh "${{ matrix.arch }}"
-
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Build sidecar
+        run: |
+          chmod +x build/build-sidecar.sh
+          ./build/build-sidecar.sh "${{ matrix.sidecar_arch }}"
+      - name: Build Tauri bundle
+        run: |
+          npm ci
+          npm run tauri build -- --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: build/dist/*.deb
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+            src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
           if-no-files-found: error
 
-  windows:
+  build-windows:
     name: Windows ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -42,28 +65,35 @@ jobs:
         include:
           - arch: x64
             runner: windows-latest
+            target: x86_64-pc-windows-msvc
           - arch: arm64
             runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Build Windows (${{ matrix.arch }})
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build sidecar
         shell: pwsh
+        run: ./build/build-sidecar.ps1 -Arch ${{ matrix.arch }}
+      - name: Build Tauri bundle
         run: |
-          Set-ExecutionPolicy Bypass -Scope Process
-          ./build/windows/build.ps1 -Arch ${{ matrix.arch }}
-
+          npm ci
+          npm run tauri build -- --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.arch }}
-          path: build/dist/ireplicator-gamepad-tester_${{ env.VERSION }}_win-${{ matrix.arch }}.zip
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
           if-no-files-found: error
 
-  macos:
+  build-macos:
     name: macOS ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -72,29 +102,40 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
+            target: aarch64-apple-darwin
+            sidecar_arch: arm64
           - arch: x64
             runner: macos-15-intel
+            target: x86_64-apple-darwin
+            sidecar_arch: x86_64
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Build macOS (${{ matrix.arch }})
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Build sidecar
         run: |
-          chmod +x build/macos/build.sh
-          ./build/macos/build.sh "${{ matrix.arch }}"
-
+          chmod +x build/build-sidecar-macos.sh
+          ./build/build-sidecar-macos.sh "${{ matrix.sidecar_arch }}"
+      - name: Build Tauri bundle
+        run: |
+          npm ci
+          npm run tauri build -- --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: macos-${{ matrix.arch }}
-          path: build/dist/ireplicator-gamepad-tester_${{ env.VERSION }}_mac-${{ matrix.arch }}.zip
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
           if-no-files-found: error
 
   release:
     name: Publish release
-    needs: [linux-deb, windows, macos]
+    needs: [build-linux, build-windows, build-macos]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -102,13 +143,11 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/**/*.deb
-            dist/**/*.zip
+            dist/**/*
           generate_release_notes: true
           draft: true
           prerelease: true

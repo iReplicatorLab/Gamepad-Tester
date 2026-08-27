@@ -1,10 +1,15 @@
 .venv/
+node_modules/
+frontend/dist/
+src-tauri/target/
+src-tauri/binaries/gamepad-service-*
 .cursor/
 __pycache__/
 *.py[cod]
 *.pyo
 build/staging/
 build/dist/
+build/gamepad-service/
 build/pyinstaller/work-*/
 build/pyinstaller/*.spec
 *.deb
