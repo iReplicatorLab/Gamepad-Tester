@@ -19,7 +19,7 @@ EOF
 
 ensure_node() {
   if ! command -v npm >/dev/null; then
-    echo "npm is required. Install Node.js 20+ and retry." >&2
+    echo "npm is required. Install Node.js 24+ and retry." >&2
     exit 1
   fi
   if [[ ! -d node_modules ]]; then

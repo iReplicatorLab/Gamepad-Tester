@@ -63,7 +63,7 @@ On first launch, macOS may block the unsigned app: **System Settings → Privacy
 
 ## Run from source
 
-**Requirements:** Node.js 20+, Rust (stable), Python 3.10+, `pygame` / `pygame-ce`, `evdev` (Linux only).
+**Requirements:** Node.js 24+, Rust (stable), Python 3.10+, `pygame` / `pygame-ce`, `evdev` (Linux only).
 
 **Linux dev dependencies:**
 
@@ -179,7 +179,7 @@ sudo ./setup-input-access.sh
 
 ## Запуск из исходников
 
-**Зависимости:** Node.js 20+, Rust (stable), Python 3.10+, `pygame` / `pygame-ce`, `evdev` (только Linux).
+**Зависимости:** Node.js 24+, Rust (stable), Python 3.10+, `pygame` / `pygame-ce`, `evdev` (только Linux).
 
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \

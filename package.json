@@ -2,7 +2,9 @@
   "name": "ireplicator-gamepad-tester",
   "private": true,
   "version": "0.3.0",
-  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite --config frontend/vite.config.ts",
     "build": "tsc -p frontend/tsconfig.json && vite build --config frontend/vite.config.ts",
