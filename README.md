@@ -104,8 +104,8 @@ npm run tauri build
 Push a version tag to build everything in GitHub Actions:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
 
 ## Project layout
@@ -199,8 +199,8 @@ npm run tauri build
 Сборка в GitHub Actions по тегу:
 
 ```bash
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
 
 ## Лицензия
