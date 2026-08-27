@@ -12,8 +12,14 @@ $OutDir = Join-Path $Root "build\dist\windows-$Arch"
 
 Set-Location $Root
 
-python -m pip install --upgrade pip
-python -m pip install pyinstaller pygame
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install pyinstaller
+if ($Arch -eq "arm64") {
+    # pygame has no official win-arm64 wheel on PyPI; pygame-ce provides one.
+    python -m pip install pygame-ce
+} else {
+    python -m pip install pygame
+}
 
 $PyArgs = @(
     "--noconfirm",
