@@ -8,18 +8,10 @@ import sys
 
 def configure_sdl_env() -> None:
     """Set SDL env vars before pygame is imported."""
-    if sys.platform in ("win32", "linux"):
+    # Dummy drivers keep SDL from registering NSApplication on macOS,
+    # which would break tkinter (SDLApplication vs Tcl/Tk).
+    if sys.platform in ("win32", "linux", "darwin"):
         os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
         os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
-
-
-def prepare_pygame_before_tk() -> None:
-    """Initialize pygame/SDL before tkinter (required on macOS)."""
-    configure_sdl_env()
-    import pygame
-
-    if pygame.get_init():
-        return
-    pygame.init()
-    if not pygame.joystick.get_init():
-        pygame.joystick.init()
+    if sys.platform == "darwin":
+        os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")

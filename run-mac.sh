@@ -27,11 +27,14 @@ if ! PYTHON="$(pick_python)"; then
   cat >&2 <<'EOF'
 Не найден Python с поддержкой tkinter (GUI).
 
-Установите tkinter для вашей версии Python, например:
+Рекомендуется Python 3.12 (стабильнее с pygame):
+  brew install python@3.12 python-tk@3.12
+
+Или для Python 3.14:
   brew install python-tk@3.14
 
 Проверка после установки:
-  python3 -m tkinter
+  python3.12 -m tkinter
 
 Если откроется маленькое тестовое окно — снова запустите:
   ./run-mac.sh
