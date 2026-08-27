@@ -79,7 +79,25 @@ pip install -r requirements.txt
 ./run.sh
 ```
 
-`run.sh` runs `npm run tauri dev`, which starts the web UI, Rust shell, and Python sidecar together.
+**Windows (PowerShell):**
+
+```powershell
+pip install -r requirements-desktop.txt
+.\start.ps1
+```
+
+`run.sh` / `start.ps1` run `npm run tauri dev`, which starts the web UI, Rust shell, and Python sidecar together.
+
+**Windows troubleshooting (dev vs MSI):**
+
+| Step | Command | What it tests |
+|------|---------|---------------|
+| 1 | `pwsh .\scripts\test-sidecar.ps1` | Python + pygame + HTTP API |
+| 2 | `pwsh .\dev.ps1` | Sidecar + browser UI (no Rust) |
+| 3 | `.\start.ps1` | Full Tauri dev (Python sidecar) |
+| 4 | `pwsh .\build\build-sidecar.ps1` then `npm run tauri build` | Same path as CI / MSI |
+
+If step 3 works but the installed MSI does not, the bundled `gamepad-service` binary is the likely failure point (check `%TEMP%\gamepad-sidecar-err.log` when using `dev.ps1`).
 
 **Sidecar only** (for frontend hacking):
 
@@ -187,6 +205,15 @@ sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchel
 pip install -r requirements.txt
 ./run.sh
 ```
+
+**Windows (PowerShell):**
+
+```powershell
+pip install -r requirements-desktop.txt
+.\start.ps1
+```
+
+Диагностика: `pwsh .\scripts\test-sidecar.ps1` → `pwsh .\dev.ps1` → `.\start.ps1`. Если dev работает, а MSI — нет, пересоберите sidecar: `pwsh .\build\build-sidecar.ps1`.
 
 ## Локальная сборка
 

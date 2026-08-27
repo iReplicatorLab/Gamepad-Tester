@@ -72,21 +72,58 @@ fn read_service_url_from_reader(mut reader: impl BufRead) -> Option<String> {
     }
 }
 
+fn python_candidates() -> Vec<&'static str> {
+    if cfg!(windows) {
+        vec!["python", "py", "python3"]
+    } else {
+        vec!["python3", "python"]
+    }
+}
+
 fn spawn_python_sidecar() -> Result<(RunningSidecar, String), String> {
     let root = project_root();
     let script = root.join("service").join("gamepad_service.py");
-    let python = if cfg!(windows) { "python" } else { "python3" };
-    let mut child = Command::new(python)
-        .arg(script)
-        .args(["--host", "127.0.0.1", "--port", "0"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| format!("failed to spawn python sidecar: {e}"))?;
+    let mut last_err = String::new();
+    let mut child = None;
+    for python in python_candidates() {
+        match Command::new(python)
+            .arg(&script)
+            .args(["--host", "127.0.0.1", "--port", "0"])
+            .stdout(Stdio::piped())
+            .stderr(if cfg!(debug_assertions) {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
+            .spawn()
+        {
+            Ok(spawned) => {
+                child = Some(spawned);
+                break;
+            }
+            Err(e) => last_err = format!("{python}: {e}"),
+        }
+    }
+    let mut child = child.ok_or_else(|| format!("failed to spawn python sidecar ({last_err})"))?;
     let stdout = child
         .stdout
         .take()
         .ok_or_else(|| "sidecar stdout unavailable".to_string())?;
+    if cfg!(debug_assertions) {
+        if let Some(stderr) = child.stderr.take() {
+            std::thread::spawn(move || {
+                let mut reader = BufReader::new(stderr);
+                let mut line = String::new();
+                loop {
+                    line.clear();
+                    if reader.read_line(&mut line).ok().unwrap_or(0) == 0 {
+                        break;
+                    }
+                    eprintln!("sidecar stderr: {}", line.trim_end());
+                }
+            });
+        }
+    }
     let mut reader = BufReader::new(stdout);
     let url = read_service_url_from_reader(&mut reader)
         .ok_or_else(|| "sidecar did not report SERVICE_URL".to_string())?;
