@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ARCH="${1:-arm64}"
+DEBUG="${DEBUG:-0}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 VERSION="0.2.1"
 APP_NAME="iReplicator Gamepad Tester"
@@ -16,11 +17,11 @@ python3 -m pip install pyinstaller pygame pillow
 PY_ARGS=(
   --noconfirm
   --clean
-  --windowed
   --name "$APP_NAME"
   --distpath "$OUT_DIR"
   --workpath "$ROOT/build/pyinstaller/work-macos-$ARCH"
   --specpath "$ROOT/build/pyinstaller"
+  --osx-bundle-identifier com.ireplicator.gamepad-tester
   --hidden-import pygame
   --hidden-import pygame.joystick
   --hidden-import PIL._tkinter_finder
@@ -32,6 +33,13 @@ PY_ARGS=(
   --add-data "$ROOT/assets:assets"
   gamepad_tester_windows.py
 )
+
+if [[ "$DEBUG" == "1" ]]; then
+  PY_ARGS+=(--console)
+  echo "Debug build: console enabled (stderr visible in Terminal)"
+else
+  PY_ARGS+=(--windowed)
+fi
 
 case "$ARCH" in
   arm64)
