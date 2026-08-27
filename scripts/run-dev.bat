@@ -32,7 +32,7 @@ set "PIP=%CD%\.venv\Scripts\pip.exe"
 "%PY%" -c "import pygame" >nul 2>&1
 if errorlevel 1 (
   echo Installing Python sidecar dependencies...
-  "%PIP%" install -r requirements-desktop.txt
+  "%PIP%" install -r "%CD%\requirements-desktop.txt"
   if errorlevel 1 goto :fail
 )
 

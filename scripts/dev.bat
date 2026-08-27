@@ -31,7 +31,7 @@ if not exist ".venv\Scripts\python.exe" (
 set "PY=%CD%\.venv\Scripts\python.exe"
 set "PIP=%CD%\.venv\Scripts\pip.exe"
 
-"%PIP%" install -q -r requirements-desktop.txt
+"%PIP%" install -q -r "%CD%\requirements-desktop.txt"
 if errorlevel 1 goto :fail
 
 if not exist "node_modules\" (
@@ -40,7 +40,7 @@ if not exist "node_modules\" (
 )
 
 echo Starting Python sidecar on port %PORT%...
-start "gamepad-sidecar" /b "%PY%" service\gamepad_service.py --host 127.0.0.1 --port %PORT%
+start "gamepad-sidecar" /b "%PY%" "%CD%\service\gamepad_service.py" --host 127.0.0.1 --port %PORT%
 
 set "READY=0"
 for /l %%i in (1,1,40) do (
