@@ -76,36 +76,9 @@ jobs:
           path: src-tauri/target/release/bundle/msi/*.msi
           if-no-files-found: error
 
-  build-macos:
-    name: macOS ${{ matrix.arch }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: arm64
-            runner: macos-15
-          - arch: x64
-            runner: macos-15-intel
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Build Tauri bundle
-        run: |
-          npm ci
-          npm run tauri build
-      - uses: actions/upload-artifact@v5
-        with:
-          name: macos-${{ matrix.arch }}
-          path: src-tauri/target/release/bundle/dmg/*.dmg
-          if-no-files-found: error
-
   release:
     name: Publish release
-    needs: [build-linux, build-windows, build-macos]
+    needs: [build-linux, build-windows]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
