@@ -1,0 +1,69 @@
+name: Republish Linux release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/republish-linux-release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish v0.1.0 Linux release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: linux-*
+          merge-multiple: true
+          path: dist
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find dist -name '*.deb' -o -name '*.AppImage' | while read -r file; do
+            base="$(basename "$file")"
+            clean="${base// /-}"
+            clean="${clean//iReplicator-Gamepad-Tester/iReplicator-Gamepad-Tester}"
+            cp "$file" "release/$clean"
+          done
+          # Normalize names to match published release format
+          shopt -s nullglob
+          for f in release/*; do
+            new="$(echo "$f" | sed 's/iReplicator Gamepad Tester/iReplicator-Gamepad-Tester/g' | tr ' ' '-')"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+          ls -lh release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: v0.1.0 — Linux builds
+          files: release/*
+          generate_release_notes: false
+          body: |
+            ## Linux downloads
+
+            - **amd64**: `.deb` installer and `.AppImage`
+            - **arm64**: `.deb` installer and `.AppImage`
+
+            Built from commit 527d57b — native Rust gamepad backend (no Python sidecar).
+
+            ### Install
+
+            **Debian/Ubuntu:**
+            ```bash
+            sudo dpkg -i iReplicator-Gamepad-Tester_0.1.0_amd64.deb
+            sudo ./setup-input-access.sh   # then log out and back in
+            ```
+
+            **AppImage:** download, `chmod +x`, run directly.
+
+            Windows builds are available as GitHub Actions artifacts from the same workflow run.
