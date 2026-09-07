@@ -2,8 +2,6 @@ name: Close stale Cursor PR
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   pull-requests: write

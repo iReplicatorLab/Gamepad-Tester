@@ -2,13 +2,10 @@ name: Republish Linux release
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/republish-linux-release.yml
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   publish:
@@ -17,27 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v5
-        with:
-          pattern: linux-*
-          merge-multiple: true
-          path: dist
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download Linux build artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list --repo "${{ github.repository }}" --workflow build.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+          gh run download "$RUN_ID" --repo "${{ github.repository }}" --name linux-amd64 --dir dist/amd64
+          gh run download "$RUN_ID" --repo "${{ github.repository }}" --name linux-arm64 --dir dist/arm64
 
       - name: Prepare release files
         run: |
           mkdir -p release
-          find dist -name '*.deb' -o -name '*.AppImage' | while read -r file; do
+          find dist -type f \( -name '*.deb' -o -name '*.AppImage' \) | while read -r file; do
             base="$(basename "$file")"
-            clean="${base// /-}"
-            clean="${clean//iReplicator-Gamepad-Tester/iReplicator-Gamepad-Tester}"
+            clean="${base//iReplicator Gamepad Tester/iReplicator-Gamepad-Tester}"
             cp "$file" "release/$clean"
-          done
-          # Normalize names to match published release format
-          shopt -s nullglob
-          for f in release/*; do
-            new="$(echo "$f" | sed 's/iReplicator Gamepad Tester/iReplicator-Gamepad-Tester/g' | tr ' ' '-')"
-            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
           done
           ls -lh release/
 
