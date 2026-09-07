@@ -2,6 +2,8 @@ name: Cleanup macOS artifacts
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   actions: write
